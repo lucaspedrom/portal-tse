@@ -1,0 +1,30 @@
+# Dependências do Projeto Portal TSE
+# Bibliotecas necessárias para ingestão e processamento de dados do TSE
+
+# ============================================================
+# DEPENDÊNCIAS OBRIGATÓRIAS
+# ============================================================
+
+# HTTP Requests - Para download de arquivos do TSE
+requests>=2.31.0
+
+# ============================================================
+# DEPENDÊNCIAS OPCIONAIS (para uso futuro)
+# ============================================================
+
+# PySpark - Para processamento distribuído de dados (camada Transform)
+# Descomente a linha abaixo quando for implementar transformações com PySpark
+# pyspark>=3.5.0
+
+# ============================================================
+# BIBLIOTECAS DA STANDARD LIBRARY (já incluídas no Python)
+# ============================================================
+# As seguintes bibliotecas são usadas no projeto mas NÃO precisam
+# ser instaladas pois já vêm com o Python:
+#
+# - os: Operações de sistema operacional
+# - zipfile: Manipulação de arquivos ZIP
+# - datetime: Manipulação de datas e horas
+# - pathlib: Manipulação de caminhos de arquivos (Python 3.4+)
+# - tempfile: Criação de arquivos e diretórios temporários
+# - logging: Sistema de logging
