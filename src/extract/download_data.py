@@ -1,4 +1,3 @@
-import os
 import requests
 import zipfile
 from datetime import datetime
