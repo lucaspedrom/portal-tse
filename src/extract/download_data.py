@@ -8,6 +8,12 @@ import logging
 # Importar configurações
 from config_ingest import CONSULTAS_CONFIG, TSE_BASE_URL
 
+# Importar gerenciador de metadados de cache
+from metadata_handler import (
+    check_if_download_needed,
+    update_metadata_after_download
+)
+
 # Configuração de logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -37,21 +43,53 @@ def download_tse_data(tipo_consulta: str, ano: int, base_path: str = None) -> st
             f"Opções válidas: {list(CONSULTAS_CONFIG.keys())}"
         )
     
-    # Obter configurações da consulta
+    # Obter configurações da consulta (Qual base de dados será baixada e qual o caminho padrão do armazenamento)
     config = CONSULTAS_CONFIG[tipo_consulta]
-    consulta_nome = config['consulta']
-    pasta_destino = config['pasta_destino']
+    consulta_nome = config['consulta'] # Nome da consulta
+    pasta_destino = config['pasta_destino'] # Caminho padrão do armazenamento
     
-    # Definir caminho base
+    # Definir caminho base de armazenamento do arquivo
     if base_path is None:
+        # Caso não tenha um caminho personalizado informado - usa o caminho padrão de armazenamento portal-tse/data/raw/
         script_dir = Path(__file__).parent
         base_path = script_dir / '../../data/raw'
     else:
+        # Caso tenha um caminho personalizado informado - usa o caminho informado
         base_path = Path(base_path)
+        
+        # Verificar se o diretório base existe
+        if not base_path.exists():
+            logger.info(f"Diretório base '{base_path}' não encontrado. Será criado automaticamente.")
     
     # Construir URL de download
-    arquivo_zip = f"{consulta_nome}_{ano}.zip"
-    url = f"{TSE_BASE_URL}/{consulta_nome}/{arquivo_zip}"
+    arquivo_zip = f"{consulta_nome}_{ano}.zip" # Cria o nome do arquivo zip, por exemplo: consulta_cand_2022.zip
+    url = f"{TSE_BASE_URL}/{consulta_nome}/{arquivo_zip}" # Cria a URL de download
+    
+    # Definir caminho do arquivo de metadados de cache
+        # IMPORTANTE - O arquivo metadata é essencial para verificação de necessidade do download. 
+        # Caso o caminho informado não contenha o arquivo metadata, permitindo todos os primeiros downloads.
+    metadata_file_path = base_path / 'tse_cache_metadata.json'
+    
+    # Executar requisição HEAD para verificar se download é necessário
+    logger.info(f"Verificando cache para: {url}")
+    try:
+        head_response = requests.head(url, timeout=30)
+        head_response.raise_for_status()
+        
+        # Verificar se download é necessário
+        if not check_if_download_needed(
+            metadata_file_path,
+            tipo_consulta,
+            ano,
+            head_response.headers
+        ):
+            logger.info(f"Cache válido. Download pulado para {tipo_consulta}_{ano}")
+            return None
+        
+        logger.info(f"Cache inválido ou inexistente. Prosseguindo com download.")
+        
+    except requests.RequestException as e:
+        logger.warning(f"Erro ao verificar cache via HEAD request: {e}. Prosseguindo com download.")
     
     logger.info(f"Iniciando download de: {url}")
     
@@ -126,6 +164,19 @@ def download_tse_data(tipo_consulta: str, ano: int, base_path: str = None) -> st
                 dst.write(src.read())
             
             logger.info(f"Arquivo armazenado com sucesso em: {caminho_final}")
+            
+            # Atualizar metadados de cache após download bem-sucedido
+            try:
+                update_metadata_after_download(
+                    metadata_file_path,
+                    tipo_consulta,
+                    ano,
+                    head_response.headers,
+                    caminho_final,  # Caminho do arquivo salvo
+                    base_path  # Caminho base para cálculo relativo
+                )
+            except Exception as e:
+                logger.warning(f"Erro ao atualizar metadados de cache: {e}")
             
         except Exception as e:
             logger.error(f"Erro ao salvar arquivo final: {e}")
