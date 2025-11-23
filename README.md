@@ -70,7 +70,18 @@ git clone <url-do-repositorio>
 cd portal-tse
 ```
 
-2. Instale as dependências:
+2. Crie e ative um ambiente virtual (Recomendado): Isso isola as dependências do projeto, evitando conflitos com outras instalações.
+```bash
+# No Windows:
+python -m venv venv
+.\venv\Scripts\Activate
+
+# No Linux/macOS:
+python3 -m venv venv
+source venv/bin/activate
+```
+
+3. Instale as dependências:
 ```bash
 pip install -r requirements.txt
 ```
