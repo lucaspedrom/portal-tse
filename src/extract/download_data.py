@@ -70,26 +70,49 @@ def download_tse_data(tipo_consulta: str, ano: int, base_path: str = None) -> st
         # Caso o caminho informado não contenha o arquivo metadata, permitindo todos os primeiros downloads.
     metadata_file_path = base_path / 'tse_cache_metadata.json'
     
-    # Executar requisição HEAD para verificar se download é necessário
+    # Constante de configuração para retry
+    MAX_RETRIES = 3
+    
+    # Executar requisição HEAD com retry para verificar se download é necessário
     logger.info(f"Verificando cache para: {url}")
-    try:
-        head_response = requests.head(url, timeout=30)
-        head_response.raise_for_status()
-        
-        # Verificar se download é necessário
-        if not check_if_download_needed(
-            metadata_file_path,
-            tipo_consulta,
-            ano,
-            head_response.headers
-        ):
-            logger.info(f"Cache válido. Download pulado para {tipo_consulta}_{ano}")
-            return None
-        
-        logger.info(f"Cache inválido ou inexistente. Prosseguindo com download.")
-        
-    except requests.RequestException as e:
-        logger.warning(f"Erro ao verificar cache via HEAD request: {e}. Prosseguindo com download.")
+    head_success = False
+    last_head_error = None
+    
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            logger.debug(f"Tentativa {attempt}/{MAX_RETRIES} de requisição HEAD")
+            head_response = requests.head(url, timeout=30)
+            head_response.raise_for_status()
+            head_success = True
+            logger.debug(f"Requisição HEAD bem-sucedida na tentativa {attempt}")
+            break
+            
+        except requests.RequestException as e:
+            last_head_error = e
+            if attempt < MAX_RETRIES:
+                logger.warning(f"Tentativa {attempt}/{MAX_RETRIES} falhou: {e}. Tentando novamente...")
+            else:
+                logger.error(f"Todas as {MAX_RETRIES} tentativas de HEAD request falharam.")
+    
+    # Se HEAD falhou após todas as tentativas, abortar
+    if not head_success:
+        logger.error(f"Não foi possível verificar cache. Última tentativa falhou com: {last_head_error}")
+        raise requests.RequestException(
+            f"Falha ao verificar cache após {MAX_RETRIES} tentativas. "
+            f"Não é seguro prosseguir sem verificação de cache. Erro: {last_head_error}"
+        )
+    
+    # Verificar se download é necessário (HEAD foi bem-sucedido)
+    if not check_if_download_needed(
+        metadata_file_path,
+        tipo_consulta,
+        ano,
+        head_response.headers
+    ):
+        logger.info(f"Cache válido. Download pulado para {tipo_consulta}_{ano}")
+        return None
+    
+    logger.info(f"Cache inválido ou inexistente. Prosseguindo com download.")
     
     logger.info(f"Iniciando download de: {url}")
     
@@ -166,12 +189,14 @@ def download_tse_data(tipo_consulta: str, ano: int, base_path: str = None) -> st
             logger.info(f"Arquivo armazenado com sucesso em: {caminho_final}")
             
             # Atualizar metadados de cache após download bem-sucedido
+            # IMPORTANTE: Usar headers da resposta GET (response.headers), não do HEAD
+            # Isso garante que os metadados reflitam o arquivo realmente baixado
             try:
                 update_metadata_after_download(
                     metadata_file_path,
                     tipo_consulta,
                     ano,
-                    head_response.headers,
+                    response.headers,  # Headers do GET bem-sucedido, não do HEAD
                     caminho_final,  # Caminho do arquivo salvo
                     base_path  # Caminho base para cálculo relativo
                 )
