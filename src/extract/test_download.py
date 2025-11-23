@@ -100,9 +100,14 @@ def main():
         
         # Sucesso
         print("\n" + "="*60)
-        print("✅ DOWNLOAD CONCLUÍDO COM SUCESSO!")
-        print("="*60)
-        print(f"Arquivo salvo em:\n{caminho_salvo}")
+        if caminho_salvo is None:
+            print("✅ CACHE VÁLIDO - DOWNLOAD NÃO NECESSÁRIO!")
+            print("="*60)
+            print("Os dados já estão atualizados. Nenhum download foi realizado.")
+        else:
+            print("✅ DOWNLOAD CONCLUÍDO COM SUCESSO!")
+            print("="*60)
+            print(f"Arquivo salvo em:\n{caminho_salvo}")
         print("="*60 + "\n")
         
     except KeyboardInterrupt:
