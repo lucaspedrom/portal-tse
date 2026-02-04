@@ -31,6 +31,11 @@ e ano deseja baixar do portal de dados abertos do TSE.
         Consulta: votacao_candidato_munzona
         Arquivo: votacao_candidato_munzona_{ano}.zip
         Armazenamento: ../../data/raw/votacao_candidato_munzona/{ano}/votacao_candidato_munzona_{ano}_BRASIL_{data_ingestao}.csv
+
+    Comparecimento e Abstencao - comparecimento:
+        Consulta: perfil_comparecimento_abstencao
+        Arquivo: perfil_comparecimento_abstencao_{ano}.zip
+        Armazenamento: ../../data/raw/comparecimento_abstencao/{ano}/perfil_comparecimento_abstencao_{ano}_BRASIL_{data_ingestao}.csv
 """
 
 from download_data import download_tse_data
