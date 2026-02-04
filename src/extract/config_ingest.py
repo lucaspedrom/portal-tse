@@ -34,6 +34,11 @@ CONSULTAS_CONFIG = {
         'consulta': 'votacao_candidato_munzona',
         'pasta_destino': 'votacao_candidato_munzona',
         'descricao': 'Votação nominal por candidato, município e zona'
+    },
+    'comparecimento': {
+        'consulta': 'perfil_comparecimento_abstencao',
+        'pasta_destino': 'comparecimento_abstencao',
+        'descricao': 'Comparecimento e Abstenção das eleições'
     }
 }
 
